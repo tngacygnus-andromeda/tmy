@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zootopia Love Story</title>
+    <style>
+        /* --- CẤU HÌNH CƠ BẢN --- */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; user-select: none; }
+        .scene { position: relative; width: 100%; height: 100%; background: linear-gradient(to bottom, #1b2735 0%, #090a0f 100%); display: flex; justify-content: center; align-items: flex-end; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 150px; background: linear-gradient(to top, #fff, #e0e0e0); border-radius: 50% 50% 0 0 / 100% 100% 0 0; z-index: 1; }
+        .snowflake { position: absolute; top: -10px; background: white; border-radius: 50%; opacity: 0.8; pointer-events: none; z-index: 3; animation: fall linear infinite; }
+        @keyframes fall { to { transform: translateY(105vh); } }
+
+        /* --- SẢNH CHỜ --- */
+        .lobby-ui { position: absolute; top: 15%; width: 100%; text-align: center; color: #fff; z-index: 10; transition: opacity 0.5s;}
+        .lobby-ui h1 { font-size: 3em; margin: 0; color: #ffeb3b; text-shadow: 0 0 20px rgba(255, 235, 59, 0.5); }
+        .main-stage { position: absolute; bottom: 80px; z-index: 2; display: flex; align-items: flex-end; gap: 80px; transition: transform 0.5s, opacity 0.5s; }
+        .char-card { text-align: center; cursor: pointer; transition: transform 0.3s; position: relative; }
+        .char-card:hover { transform: scale(1.1) translateY(-10px); }
+        .char-card img { height: 350px; width: auto; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); }
+        .game-label { background: rgba(255, 255, 255, 0.9); color: #333; padding: 8px 20px; border-radius: 20px; font-weight: bold; margin-top: 10px; display: inline-block; opacity: 0; transform: translateY(10px); transition: all 0.3s; }
+        .char-card:hover .game-label { opacity: 1; transform: translateY(0); }
+
+        /* --- KHUNG GAME CHUNG --- */
+        .game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .game-container.active { display: flex; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .game-header { position: absolute; top: 20px; left: 20px; color: white; display: flex; gap: 20px; align-items: center; z-index: 20;}
+        .back-btn { padding: 10px 20px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .game-score { font-size: 1.5em; font-weight: bold; color: #ffeb3b; }
+
+        /* --- MODAL --- */
+        .modal { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 30px; border-radius: 20px; text-align: center; 
+            display: none; animation: popIn 0.3s; z-index: 200; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 500px; width: 90%;
+            border: 4px solid #3498db;
+        }
+        .modal h2 { margin-top: 0; color: #2980b9; }
+        .modal p { font-size: 1.1em; line-height: 1.5; color: #333; }
+        .modal ul { text-align: left; background: #f1f2f6; padding: 15px 30px; border-radius: 10px; }
+        .modal li { margin-bottom: 5px; }
+        .action-btn { 
+            padding: 12px 30px; background: #2ecc71; color: white; border: none; 
+            border-radius: 50px; font-size: 1.2em; font-weight: bold; cursor: pointer; margin-top: 20px;
+            box-shadow: 0 5px 0 #27ae60; transition: transform 0.1s;
+        }
+        .action-btn:active { transform: translateY(3px); box-shadow: none; }
+        
+        .win-modal { border-color: #f1c40f; }
+        .win-modal h2 { color: #d35400; }
+
+        /* --- HEX SAVE MODAL --- */
+        .hex-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95); color: #ff4757;
+            padding: 40px; border-radius: 15px; border: 2px solid #ff4757;
+            text-align: center; z-index: 500; display: none;
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+            min-width: 300px;
+            animation: shakeModal 0.5s;
+        }
+        .hex-modal h2 { margin: 0 0 15px 0; font-size: 1.8em; text-transform: uppercase; }
+        .hex-modal p { font-size: 1.3em; font-weight: bold; color: white; }
+        .close-hex { position: absolute; top: 10px; left: 15px; font-size: 30px; cursor: pointer; color: #fff; opacity: 0.7; transition: 0.2s; }
+        .close-hex:hover { opacity: 1; color: #ff4757; }
+        @keyframes shakeModal { 0% { transform: translate(-50%, -50%) rotate(0deg); } 25% { transform: translate(-50%, -50%) rotate(-5deg); } 75% { transform: translate(-50%, -50%) rotate(5deg); } 100% { transform: translate(-50%, -50%) rotate(0deg); } }
+
+        /* --- GAME COMPONENTS --- */
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background: white; padding: 20px; border-radius: 15px; display: none; }
+        .card { width: 80px; height: 80px; background: #2f3542; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 2.5em; cursor: pointer; transform-style: preserve-3d; transition: transform 0.5s; }
+        .card.flipped { transform: rotateY(180deg); background: #fff; }
+        .card .front { display: none; }
+        .card.flipped .front { display: block; }
+        .card.matched { background: #2ecc71; border-color: #27ae60; animation: pulse 0.5s; }
+
+        .quiz-container { display: none; width: 600px; max-width: 90%; background: white; padding: 30px; border-radius: 20px; text-align: center; animation: slideUp 0.5s; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .quiz-container h2 { color: #d35400; margin-bottom: 10px; }
+        .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .answer-btn { padding: 15px; background: #f1f2f6; border: 2px solid #dfe4ea; border-radius: 10px; cursor: pointer; font-size: 1em; transition: all 0.2s; }
+        .answer-btn:hover { background: #dfe4ea; }
+        .answer-btn.correct { background: #2ecc71 !important; color: white; border-color: #27ae60; }
+        .answer-btn.wrong { background: #ff4757 !important; color: white; border-color: #ff6b81; animation: shake 0.4s; }
+
+        #catchCanvas { background: rgba(255,255,255,0.1); border-bottom: 5px solid white; cursor: none; }
+        .recipe-board { position: absolute; right: 20px; top: 80px; bottom: 20px; width: 250px; background: #fff; border-radius: 15px; padding: 15px; box-shadow: -5px 0 15px rgba(0,0,0,0.5); overflow-y: auto; font-family: 'Segoe UI', sans-serif; }
+        .recipe-title { text-align: center; color: #d35400; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px; font-weight: bold;}
+        .ingredient-item { display: flex; align-items: center; margin-bottom: 8px; padding: 5px; border-radius: 5px; transition: background 0.3s; }
+        .ingredient-item.checked { background: #e8f5e9; color: #2e7d32; text-decoration: none; font-weight: bold; }
+        .ing-icon { font-size: 1.5em; margin-right: 10px; width: 30px; text-align: center;}
+        .check-mark { margin-left: auto; color: #2ecc71; font-weight: bold; opacity: 0; }
+        .ingredient-item.checked .check-mark { opacity: 1; }
+        .floating-text { position: absolute; font-weight: bold; font-size: 1.5em; pointer-events: none; animation: floatUp 1s forwards; }
+
+        .cooking-stage { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .steps-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; max-width: 800px; margin-top: 20px;}
+        .step-card { background: white; padding: 15px; border-radius: 10px; cursor: pointer; width: 150px; text-align: center; font-weight: bold; color: #555; transition: all 0.2s; border: 3px solid transparent; }
+        .step-card:hover { transform: scale(1.05); background: #f0f0f0; }
+        .step-card.selected { background: #2ecc71; color: white; border-color: #27ae60; order: -1; pointer-events: none; opacity: 0.6; }
+        .current-sequence { color: white; font-size: 1.5em; margin-bottom: 20px; min-height: 40px; text-align: center;}
+
+        /* --- SCENES (STORY & PROPOSAL) --- */
+        .story-scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('nick kiss judy.jpg') no-repeat center center/cover; z-index: 300; display: none; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 50px; animation: fadeIn 1s; }
+        .date-proposal-scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #2c3e50 0%, #000000 100%); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .story-box { background: rgba(0, 0, 0, 0.8); color: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 600px; border: 2px solid #ff4757; }
+        .story-options { display: flex; gap: 20px; justify-content: center; margin-top: 20px;}
+        .story-btn { padding: 12px 30px; border: none; border-radius: 50px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .btn-a { background: #ff4757; color: white; } .btn-b { background: #fff; color: #333; }
+
+        .narrator-box { background: rgba(255,255,255,0.1); color: #bdc3c7; padding: 15px 30px; border-radius: 10px; margin-bottom: 30px; font-style: italic; font-size: 1.2em; text-align: center; max-width: 80%; }
+        .dialogue-container { display: flex; align-items: center; gap: 30px; width: 90%; max-width: 800px; }
+        .avatar-circle { width: 150px; height: 150px; border-radius: 50%; border: 5px solid #ff4757; overflow: hidden; box-shadow: 0 0 20px rgba(255, 71, 87, 0.6); flex-shrink: 0; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+        .speech-bubble { background: white; color: #333; padding: 25px; border-radius: 20px; position: relative; font-size: 1.3em; font-weight: bold; flex-grow: 1; }
+        .speech-bubble::after { content: ''; position: absolute; left: -15px; top: 50%; transform: translateY(-50%); border-width: 15px 15px 15px 0; border-style: solid; border-color: transparent white transparent transparent; }
+        
+        .response-area { margin-top: 50px; display: flex; gap: 50px; position: relative; width: 100%; justify-content: center; height: 100px; }
+        .btn-yes { padding: 15px 50px; background: #2ecc71; color: white; border: none; border-radius: 50px; font-size: 1.5em; font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #27ae60; }
+        
+        /* NÚT NO CĂN GIỮA */
+        .btn-no { padding: 15px 50px; background: #95a5a6; color: white; border: none; border-radius: 50px; font-size: 1.5em; font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #7f8c8d; }
+        
+        .heart { position: absolute; color: #ff4757; animation: flyUp 3s linear forwards; pointer-events: none; }
+        @keyframes flyUp { to { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0); } to { transform: translate(-50%, -50%) scale(1); } }
+
+        /* --- CARROT PEN SCENE --- */
+        .carrot-scene {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #2c3e50, #000);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 500; animation: fadeIn 1s;
+        }
+        .carrot-instruction { color: #bdc3c7; margin-bottom: 30px; font-style: italic; font-size: 1.2em; animation: pulse 2s infinite; }
+        .carrot-pen-container { position: relative; cursor: pointer; transition: transform 0.3s; }
+        .carrot-pen-container:hover { transform: scale(1.1); }
+        .carrot-pen { width: 200px; height: auto; animation: shakePen 0.5s infinite; filter: drop-shadow(0 0 20px rgba(230, 126, 34, 0.6)); }
+        @keyframes shakePen { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } 100% { transform: rotate(0deg); } }
+        .carrot-message { margin-top: 40px; font-size: 1.8em; color: #fff; font-weight: bold; text-align: center; opacity: 0; transition: opacity 1s; max-width: 80%; text-shadow: 0 0 10px #e67e22; }
+        .end-btn-container { margin-top: 30px; display: none; animation: popIn 0.5s; }
+
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="ground"></div>
+
+        <div class="lobby-ui" id="lobbyUI">
+            <h1>Zootopia Fun Center</h1>
+            <p>Chọn nhân vật để bắt đầu thử thách!</p>
+        </div>
+
+        <div class="main-stage" id="mainStage">
+            <div class="char-card" onclick="startGame('nick')">
+                <img src="Nick.png" alt="Nick">
+                <div class="game-label">🦊 Siêu trí tuệ</div>
+            </div>
+            <div class="char-card" onclick="startGame('judy')">
+                <img src="judy.png" alt="Judy">
+                <div class="game-label">🐰 Siêu đầu bếp</div>
+            </div>
+        </div>
+
+        <div class="game-container" id="gameNick">
+            <div class="game-header">
+                <button class="back-btn" onclick="backToLobby()">🔙 Thoát</button>
+                <div class="game-score" id="nickStatus">Round 1</div>
+            </div>
+            
+            <div class="modal" id="nickIntroModal">
+                <h2>🦊 VỤ ÁN BÍ ẨN</h2>
+                <p>Nick và Judy đang cùng nhau phá một vụ án hóc búa. Hãy giúp Nick tìm ra manh mối!</p>
+                <div style="text-align: left; margin: 15px 0;">
+                    <strong>Luật chơi Round 1:</strong>
+                    <ul>
+                        <li>Lật các thẻ bài để tìm cặp hình giống nhau.</li>
+                        <li>Mỗi cặp hình là một manh mối quan trọng.</li>
+                        <li>Hoàn thành tất cả để qua vòng.</li>
+                    </ul>
+                </div>
+                <button class="action-btn" onclick="startNickRound1()">BẮT ĐẦU</button>
+            </div>
+
+            <div class="memory-grid" id="memoryGrid"></div>
+
+            <div class="modal" id="nickRound2Intro">
+                <h2>🔍 SUY LUẬN</h2>
+                <p>Tuyệt vời! Đã thu thập đủ manh mối. Giờ là lúc Nick trổ tài suy luận.</p>
+                <div style="text-align: left; margin: 15px 0;">
+                    <strong>Luật chơi Round 2:</strong>
+                    <ul>
+                        <li>Trả lời đúng 4 câu đố để tìm ra hung thủ.</li>
+                        <li>Cẩn thận với những câu hỏi mẹo nhé!</li>
+                    </ul>
+                </div>
+                <button class="action-btn" onclick="startNickRound2()">TIẾP TỤC</button>
+            </div>
+
+            <div class="quiz-container" id="nickQuiz">
+                <h2 id="quizTitle">Round 2: Giải đố (1/3)</h2>
+                <p class="quiz-question" id="questionText">Câu hỏi...</p>
+                <div class="answers-grid" id="answersArea"></div>
+            </div>
+
+            <div class="modal win-modal" id="wrongAnswerModal">
+                <h2>TAO RẤT ĐẸP TRAI NHÉ</h2>
+                <p>Xùy! Có người khác đẹp hơn rồi chứ gì</p>
+                <button class="action-btn" onclick="retryLastQuestion()">Thử lại ngay</button>
+            </div>
+            <div class="modal win-modal" id="nickWin">
+                <h2>🎉 PHÁ ÁN THÀNH CÔNG!</h2>
+                <p>Em hơi vô tri....<br>Nhưng mà t iu em</p>
+                <button class="action-btn" onclick="showStoryScene()">Tiếp theo ➡</button>
+            </div>
+        </div>
+
+        <div class="game-container" id="gameJudy">
+            <div class="game-header">
+                <button class="back-btn" onclick="backToLobby()">🔙 Thoát</button>
+                <div class="game-score">Điểm: <span id="scoreVal">0</span>/10</div>
+            </div>
+            
+            <div class="modal" id="judyIntroModal">
+                <h2>🐰 MÓN QUÀ CẢM ƠN</h2>
+                <p>Để cảm ơn Nick những lần trước đã giúp đỡ phá án, Judy quyết định làm món bánh Macaroon trứ danh để tặng Nick.</p>
+                <div style="text-align: left; margin: 15px 0;">
+                    <strong>Luật chơi Round 1:</strong>
+                    <ul>
+                        <li>Di chuyển Judy để hứng đủ <strong>10 loại nguyên liệu</strong>.</li>
+                        <li>Mỗi món mới +1 điểm. Món trùng +0 điểm.</li>
+                        <li><strong>Tránh xa</strong> cá thối và ủng bẩn (-2 điểm).</li>
+                    </ul>
+                </div>
+                <button class="action-btn" onclick="startJudyRound1()">BẮT ĐẦU</button>
+            </div>
+
+            <div id="judyRound1">
+                <canvas id="catchCanvas" width="800" height="500"></canvas>
+                <div class="recipe-board" id="recipeBoard">
+                    <div class="recipe-title">📜 Công thức Macaroon</div>
+                    <div id="recipeList"></div>
+                </div>
+            </div>
+
+            <div class="modal win-modal" id="judyLose">
+                <h2>Đúng chick chick!</h2>
+                <p>Hong được 10đ r bé iu, chơi lại nhé.</p>
+                <button class="action-btn" onclick="retryJudyRound1()">Thử lại ngay</button>
+            </div>
+
+            <div class="modal" id="judyRound2Intro">
+                <h2>👩‍🍳 VÀO BẾP</h2>
+                <p>Nguyên liệu đã đủ! Giờ hãy giúp Judy thực hiện các bước làm bánh nhé.</p>
+                <div style="text-align: left; margin: 15px 0;">
+                    <strong>Luật chơi Round 2:</strong>
+                    <ul>
+                        <li>Chọn các thẻ bài theo đúng <strong>thứ tự quy trình</strong> làm bánh Macaroon.</li>
+                        <li>Nếu chọn sai thẻ sẽ bị rung lên báo hiệu.</li>
+                    </ul>
+                </div>
+                <button class="action-btn" onclick="startJudyRound2()">LÀM BÁNH</button>
+            </div>
+
+            <div class="cooking-stage" id="judyRound2">
+                <h2 style="color:white; margin-bottom:10px;">Round 2: Sắp xếp quy trình làm bánh</h2>
+                <div class="current-sequence" id="sequenceDisplay">Các bước: </div>
+                <div class="steps-container" id="stepsContainer"></div>
+            </div>
+
+            <div class="modal win-modal" id="judyWin">
+                <h2>🍩 TUYỆT VỜI!</h2>
+                <p>Bánh của Tmy ngon nhất Zootopia</p>
+                <button class="action-btn" onclick="showStoryScene()">Tiếp theo ➡</button>
+            </div>
+        </div>
+
+        <div class="story-scene" id="storyScene">
+            <div class="story-box">
+                <p class="story-text" id="storyTextContent">...</p>
+                <div class="story-options">
+                    <button class="story-btn btn-a" onclick="chooseOption('A')">Hex save có thảo và có</button>
+                    <button class="story-btn btn-b" onclick="chooseOption('B')">Đi date</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="hex-modal" id="hexMessage">
+            <span class="close-hex" onclick="closeHexMessage()">×</span>
+            <h2>⚠️ CẢNH BÁO</h2>
+            <p>Dm m! Tạo cảnh đó xong bị ban mất à..</p>
+        </div>
+
+        <div class="date-proposal-scene" id="dateProposal">
+            <div class="narrator-box" id="narratorText">...</div>
+            <div class="dialogue-container">
+                <div class="avatar-circle">
+                    <img id="proposerAvatar" src="" alt="Avatar">
+                </div>
+                <div class="speech-bubble" id="proposalText">...</div>
+            </div>
+            <div class="response-area" id="responseArea">
+                <button class="btn-yes" onclick="acceptDate()">YES ❤️</button>
+                <button class="btn-no" id="noBtn" onmouseover="moveNoBtn()">NO 🙅‍♂️</button>
+            </div>
+        </div>
+
+        <div class="carrot-scene" id="carrotScene">
+            <div class="carrot-instruction">Nhấp vào bút cà rốt để nghe tin nhắn nhé...</div>
+            
+            <div class="carrot-pen-container" onclick="playCarrotMessage()">
+                <img src="carrot_pen.png" alt="Carrot Pen" class="carrot-pen" id="carrotPenImg">
+            </div>
+
+            <div class="carrot-message" id="carrotText"></div>
+            
+            <audio id="nickAudio" src="voice.m4a"></audio>
+
+            <div class="end-btn-container" id="endBtnContainer">
+                <button class="action-btn" onclick="backToLobby()">Về sảnh chính</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let activeCharacter = ''; 
+
+        // --- LOGIC CHUNG ---
+        function backToLobby() {
+            document.querySelectorAll('.game-container').forEach(g => g.classList.remove('active'));
+            document.querySelectorAll('.story-scene, .date-proposal-scene, .carrot-scene').forEach(s => s.style.display = 'none');
+            // Reset bút
+            document.getElementById('carrotPenImg').style.animation = 'shakePen 0.5s infinite';
+            document.getElementById('carrotText').style.opacity = '0';
+            document.getElementById('endBtnContainer').style.display = 'none';
+
+            const stage = document.getElementById('mainStage'); const lobby = document.getElementById('lobbyUI');
+            stage.style.opacity = '1'; stage.style.pointerEvents = 'all'; lobby.style.opacity = '1';
+            resetAllGames();
+        }
+
+        function resetAllGames() {
+            stopCatchGame();
+            document.querySelectorAll('.modal, .hex-modal').forEach(m => m.style.display = 'none');
+            document.getElementById('memoryGrid').style.display = 'none';
+            document.getElementById('nickQuiz').style.display = 'none';
+            document.getElementById('judyRound1').style.display = 'none';
+            document.getElementById('judyRound2').style.display = 'none';
+        }
+
+        function startGame(char) {
+            activeCharacter = char;
+            const stage = document.getElementById('mainStage'); const lobby = document.getElementById('lobbyUI');
+            stage.style.opacity = '0'; stage.style.pointerEvents = 'none'; lobby.style.opacity = '0';
+
+            if(char === 'nick') { 
+                document.getElementById('gameNick').classList.add('active'); 
+                document.getElementById('nickIntroModal').style.display = 'block'; 
+            } else { 
+                document.getElementById('gameJudy').classList.add('active'); 
+                document.getElementById('judyIntroModal').style.display = 'block'; 
+            }
+        }
+
+        // --- NICK GAME FLOW ---
+        function startNickRound1() {
+            document.getElementById('nickIntroModal').style.display = 'none';
+            initMemoryGame();
+        }
+
+        function startNickRound2() {
+            document.getElementById('nickRound2Intro').style.display = 'none';
+            document.getElementById('nickQuiz').style.display = 'block';
+            document.getElementById('nickStatus').innerText = "Round 2: Giải đố";
+            currentQuizIndex = 0; loadQuestion();
+        }
+
+        // --- JUDY GAME FLOW ---
+        function startJudyRound1() {
+            document.getElementById('judyIntroModal').style.display = 'none';
+            document.getElementById('judyLose').style.display = 'none';
+            initCatchGame();
+        }
+        
+        function retryJudyRound1() {
+            document.getElementById('judyLose').style.display = 'none';
+            initCatchGame();
+        }
+
+        function startJudyRound2() {
+            document.getElementById('judyRound2Intro').style.display = 'none';
+            initCookingGame();
+        }
+
+        // --- STORY LOGIC ---
+        function showStoryScene() {
+            document.getElementById('nickWin').style.display = 'none';
+            document.getElementById('judyWin').style.display = 'none';
+            
+            const storyText = document.getElementById('storyTextContent');
+            if (activeCharacter === 'nick') {
+                storyText.innerHTML = "Phá án xong rồi thì làm gì nhỉ..?<br>Nick nhìn Judy và mỉm cười...";
+            } else {
+                storyText.innerHTML = "Sau khi mẻ bánh thơm lừng ra lò, Nick nhìn chiếc bánh với ánh mắt sáng rực...<br>Cậu ta có vẻ đói rồi!";
+            }
+            document.getElementById('storyScene').style.display = 'flex';
+        }
+
+        // Xử lý Popup Hex Save
+        function chooseOption(opt) {
+            if(opt === 'A') {
+                document.getElementById('hexMessage').style.display = 'block';
+            } else { 
+                setupDateProposal(); 
+                document.getElementById('storyScene').style.display = 'none'; 
+                document.getElementById('dateProposal').style.display = 'flex'; 
+            }
+        }
+
+        function closeHexMessage() {
+            document.getElementById('hexMessage').style.display = 'none';
+        }
+
+        function setupDateProposal() {
+            const narrator = document.getElementById('narratorText');
+            const avatar = document.getElementById('proposerAvatar');
+            const text = document.getElementById('proposalText');
+            if (activeCharacter === 'nick') {
+                narrator.innerText = "\"Sau khi làm bánh bục mặt ra thì Judy đã đủ tiền mời Nick đi chơi...\"";
+                avatar.src = "judy.png"; text.innerText = "\"Thứ 6 lúc 11 tại Vạn Hạnh Mall, T rất muốn gặp em ạ 🥕🍿\"";
+            } else {
+                narrator.innerText = "\"Ăn bánh xong, Nick lau miệng và nhìn Judy đầy ẩn ý...\"";
+                avatar.src = "Nick.png"; text.innerText = "\"Sau bao lâu cũng được ăn bánh Tmy làm =))) Cũng phải trả công chứ he... Em cho phép tao thứ 6 lúc 11h tại Vạn Hạnh Mall gặp em nhe!! 🦊🌹\"";
+            }
+        }
+        
+        function moveNoBtn() {
+            const btn = document.getElementById('noBtn');
+            const x = Math.random() * (window.innerWidth - 150); const y = Math.random() * (window.innerHeight - 100);
+            btn.style.position = 'fixed'; btn.style.left = `${x}px`; btn.style.top = `${y}px`;
+        }
+        
+        function acceptDate() {
+            for(let i=0; i<50; i++) createHeart();
+            setTimeout(() => { 
+                document.getElementById('dateProposal').style.display = 'none';
+                document.getElementById('carrotScene').style.display = 'flex';
+            }, 1000);
+        }
+
+        function playCarrotMessage() {
+            const penImg = document.getElementById('carrotPenImg');
+            const audio = document.getElementById('nickAudio');
+            const text = document.getElementById('carrotText');
+            const btnContainer = document.getElementById('endBtnContainer');
+
+            penImg.style.animation = 'none';
+            try { audio.play().catch(e => console.log("Cần tương tác để phát nhạc")); } catch(e) {}
+            
+            text.innerText = "T yêu em";
+            text.style.opacity = '1';
+            setTimeout(() => { btnContainer.style.display = 'block'; }, 2000);
+        }
+
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerText = ['❤️', '💖', '💘', '🥕'][Math.floor(Math.random()*4)];
+            heart.style.left = Math.random()*100+"vw"; heart.style.top="100vh";
+            heart.style.fontSize=(Math.random()*20+20)+"px"; heart.style.animationDuration=(Math.random()*2+3)+"s";
+            document.body.appendChild(heart); setTimeout(()=>heart.remove(),5000);
+        }
+
+        // ==========================================
+        // GAME 1: NICK LOGIC
+        // ==========================================
+        const quizData = [
+            { question: "Cơ quan nào không tham gia cân bằng nội môi?", answers: ["Thận", "Gan", "Tuyến giáp", "Lách"], correct: 3 },
+            { question: "Tìm x: √(5x - 4) - √(x - 1) = 2", answers: ["x=2", "x=3", "x=5", "x=6"], correct: 2 },
+            { question: "Chất không phản ứng với HCl loãng?", answers: ["CuO", "Al(OH)3", "Cu", "Fe2O3"], correct: 2 },
+            { question: "Tnga có đẹp trai k?", answers: ["Có", "Không", "số 1 hệ mặt trời", "Tinh hoa hội tụ"], correct: [0, 2, 3] }
+        ];
+        let currentQuizIndex=0; const emojis=['🍩','🥕','🚔','🕶️','🦊','🐰','🍦','📱']; 
+        let cards=[], hasFlippedCard=false, lockBoard=false, firstCard, secondCard, matchedPairs=0;
+
+        function initMemoryGame() {
+            document.getElementById('nickStatus').innerText="Round 1: Tìm cặp hình";
+            document.getElementById('memoryGrid').style.display='grid';
+            const grid=document.getElementById('memoryGrid'); grid.innerHTML=''; matchedPairs=0;
+            const deck=[...emojis,...emojis].sort(()=>0.5-Math.random());
+            deck.forEach(emoji=>{
+                const c=document.createElement('div'); c.classList.add('card'); c.dataset.emoji=emoji;
+                c.innerHTML=`<div class="front">${emoji}</div>`; c.addEventListener('click',flipCard); grid.appendChild(c);
+            });
+        }
+        function flipCard(){ if(lockBoard||this===firstCard)return; this.classList.add('flipped'); if(!hasFlippedCard){hasFlippedCard=true;firstCard=this;return;} secondCard=this;checkForMatch();}
+        function checkForMatch(){ let isMatch=firstCard.dataset.emoji===secondCard.dataset.emoji; isMatch?disableCards():unflipCards();}
+        function unflipCards(){ lockBoard=true; setTimeout(()=>{firstCard.classList.remove('flipped');secondCard.classList.remove('flipped');resetBoard();},1000);}
+        function resetBoard(){ [hasFlippedCard,lockBoard]=[false,false]; [firstCard,secondCard]=[null,null];}
+        function disableCards(){ 
+            firstCard.classList.add('matched'); secondCard.classList.add('matched'); resetBoard(); matchedPairs++; 
+            if(matchedPairs===emojis.length) {
+                setTimeout(() => {
+                    document.getElementById('memoryGrid').style.display='none';
+                    document.getElementById('nickRound2Intro').style.display='block';
+                }, 1000); 
+            }
+        }
+        
+        function loadQuestion(){ const d=quizData[currentQuizIndex]; document.getElementById('quizTitle').innerText=`Round 2 (${currentQuizIndex+1}/${quizData.length})`; document.getElementById('questionText').innerText=d.question; const area=document.getElementById('answersArea'); area.innerHTML=''; d.answers.forEach((ans,i)=>{ const b=document.createElement('button'); b.classList.add('answer-btn'); b.innerText=ans; b.onclick=()=>checkAnswer(i,b); area.appendChild(b);});}
+        function checkAnswer(idx,btn){ 
+            const d=quizData[currentQuizIndex]; let correct=Array.isArray(d.correct)?d.correct.includes(idx):idx===d.correct; 
+            document.querySelectorAll('.answer-btn').forEach(b=>b.disabled=true);
+            if(correct){ btn.classList.add('correct'); setTimeout(()=>{ currentQuizIndex++; if(currentQuizIndex<quizData.length)loadQuestion(); else{document.getElementById('nickQuiz').style.display='none'; document.getElementById('nickWin').style.display='block';} },1000);}
+            else{ btn.classList.add('wrong'); if(currentQuizIndex===quizData.length-1) setTimeout(()=>{document.getElementById('wrongAnswerModal').style.display='block';},500); else setTimeout(()=>{document.querySelectorAll('.answer-btn').forEach(b=>b.disabled=false); btn.classList.remove('wrong');},500);}
+        }
+        function retryLastQuestion(){ document.getElementById('wrongAnswerModal').style.display='none'; document.querySelectorAll('.answer-btn').forEach(b=>{b.disabled=false;b.classList.remove('wrong');});}
+
+        // ==========================================
+        // GAME 2: JUDY LOGIC
+        // ==========================================
+        const canvas = document.getElementById('catchCanvas');
+        const ctx = canvas.getContext('2d');
+        let gameLoopId, score = 0, playerX = canvas.width / 2, items = [];
+        const playerWidth = 80, playerHeight = 80;
+        const playerImg = new Image(); playerImg.src = 'judy.png';
+        let spawnItemInterval;
+        const ingredientsList = [
+            {id: 'egg', icon: '🥚', name: 'Trứng'}, {id: 'sugar', icon: '🍚', name: 'Đường hạt'}, {id: 'powder_sugar', icon: '🌨️', name: 'Đường bột'},
+            {id: 'almond', icon: '🥜', name: 'Hạnh nhân'}, {id: 'color', icon: '🎨', name: 'Màu thực phẩm'}, {id: 'salt', icon: '🧂', name: 'Muối'},
+            {id: 'butter', icon: '🧈', name: 'Bơ'}, {id: 'cream', icon: '🥛', name: 'Kem tươi'}, {id: 'vanilla', icon: '🍦', name: 'Vani'}, {id: 'bag', icon: '👜', name: 'Túi bắt kem'}
+        ];
+        const distractions = ['🐟', '👢', '💩', '🥦'];
+        let collectedIngredients = new Set(); 
+
+        function initCatchGame() {
+            document.getElementById('judyRound1').style.display = 'block';
+            score = 0; items = []; collectedIngredients.clear();
+            document.getElementById('scoreVal').innerText = score;
+            const listDiv = document.getElementById('recipeList'); listDiv.innerHTML = '';
+            ingredientsList.forEach(ing => { listDiv.innerHTML += `<div class="ingredient-item" id="ing-${ing.id}"><div class="ing-icon">${ing.icon}</div><span>${ing.name}</span><span class="check-mark">✔</span></div>`; });
+            canvas.addEventListener('mousemove', movePlayer);
+            if(gameLoopId) cancelAnimationFrame(gameLoopId);
+            gameLoop(); spawnItemInterval = setInterval(spawnItem, 800);
+        }
+
+        function stopCatchGame() { if(gameLoopId) cancelAnimationFrame(gameLoopId); clearInterval(spawnItemInterval); canvas.removeEventListener('mousemove', movePlayer); }
+        function movePlayer(e) { const rect = canvas.getBoundingClientRect(); playerX = e.clientX - rect.left - playerWidth/2; }
+        function spawnItem() {
+            let type, isDistraction = Math.random() < 0.3; 
+            if(isDistraction) { type = { icon: distractions[Math.floor(Math.random()*distractions.length)], isBad: true }; } 
+            else { const ing = ingredientsList[Math.floor(Math.random()*ingredientsList.length)]; type = { icon: ing.icon, id: ing.id, isBad: false }; }
+            items.push({ x: Math.random() * (canvas.width - 30), y: -30, speed: Math.random() * 3 + 2, data: type });
+        }
+        function showFloatText(text, x, y, color) {
+            const el = document.createElement('div'); el.innerText = text; el.className = 'floating-text';
+            el.style.left = (canvas.getBoundingClientRect().left + x) + 'px'; el.style.top = (canvas.getBoundingClientRect().top + y) + 'px'; el.style.color = color;
+            document.body.appendChild(el); setTimeout(() => el.remove(), 1000);
+        }
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            try { ctx.drawImage(playerImg, playerX, canvas.height - playerHeight, playerWidth, playerHeight); } 
+            catch(e) { ctx.fillStyle = 'blue'; ctx.fillRect(playerX, canvas.height - playerHeight, playerWidth, playerHeight); }
+            items.forEach((item, index) => {
+                item.y += item.speed; ctx.font = "30px Arial"; ctx.fillText(item.data.icon, item.x, item.y);
+                if (item.y > canvas.height - playerHeight && item.y < canvas.height && item.x > playerX && item.x < playerX + playerWidth) {
+                    items.splice(index, 1);
+                    if (item.data.isBad) { score = Math.max(0, score - 2); showFloatText("-2", item.x, item.y, "red"); } 
+                    else {
+                        if(collectedIngredients.has(item.data.id)) { showFloatText("+0", item.x, item.y, "orange"); } 
+                        else { score++; collectedIngredients.add(item.data.id); document.getElementById(`ing-${item.data.id}`).classList.add('checked'); showFloatText("+1", item.x, item.y, "#2ecc71"); }
+                    }
+                    document.getElementById('scoreVal').innerText = score;
+                    if(collectedIngredients.size === ingredientsList.length) {
+                        stopCatchGame();
+                        // Dừng ngay lập tức để tránh lỗi vòng lặp
+                        if(score >= 10) { 
+                            document.getElementById('judyRound1').style.display = 'none';
+                            document.getElementById('judyRound2Intro').style.display = 'block';
+                        } else { document.getElementById('judyLose').style.display = 'block'; }
+                        return; // QUAN TRỌNG: Ngừng vòng lặp ngay
+                    }
+                }
+                if (item.y > canvas.height) items.splice(index, 1);
+            });
+            if(score < 10 || collectedIngredients.size < ingredientsList.length) gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        const cookingSteps = ["Rây bột hạnh nhân & đường", "Đánh bông lòng trắng trứng", "Trộn bột (Macaronage)", "Bắt kem ra khay", "Hong khô vỏ bánh", "Nướng bánh"];
+        let userSequence = [];
+        function initCookingGame() {
+            document.getElementById('judyRound2').style.display = 'flex';
+            userSequence = []; updateSequenceDisplay();
+            const container = document.getElementById('stepsContainer'); container.innerHTML = '';
+            let shuffledSteps = [...cookingSteps].sort(() => 0.5 - Math.random());
+            shuffledSteps.forEach(step => {
+                const card = document.createElement('div'); card.className = 'step-card'; card.innerText = step;
+                card.onclick = () => selectStep(step, card); container.appendChild(card);
+            });
+        }
+        function selectStep(step, cardElement) {
+            const correctNextStep = cookingSteps[userSequence.length];
+            if (step === correctNextStep) {
+                userSequence.push(step); cardElement.classList.add('selected'); updateSequenceDisplay();
+                if (userSequence.length === cookingSteps.length) { setTimeout(() => { document.getElementById('judyRound2').style.display = 'none'; document.getElementById('judyWin').style.display = 'block'; }, 1000); }
+            } else {
+                cardElement.style.background = '#ff4757'; cardElement.style.color = 'white';
+                setTimeout(() => { cardElement.style.background = 'white'; cardElement.style.color = '#555'; }, 500);
+            }
+        }
+        function updateSequenceDisplay() { document.getElementById('sequenceDisplay').innerText = "Các bước: " + userSequence.map((s, i) => `(${i+1}) ${s}`).join(' ➔ '); }
+        function createSnow() {
+            const scene = document.querySelector('.scene'); const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake'); const size = Math.random() * 5 + 2;
+            snowflake.style.width = `${size}px`; snowflake.style.height = `${size}px`;
+            snowflake.style.left = `${Math.random() * 100}vw`; snowflake.style.animationDuration = `${Math.random() * 5 + 5}s`;
+            snowflake.style.opacity = Math.random(); scene.appendChild(snowflake); setTimeout(() => { snowflake.remove(); }, 10000);
+        }
+        setInterval(createSnow, 100);
+    </script>
+</body>
+</html>
